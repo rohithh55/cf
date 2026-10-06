@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────── PORTFOLIO CONTENT (served by GET /api/profile) ─────────────
+
+model Profile {
+  id           Int      @id @default(autoincrement())
+  fullName     String
+  title        String
+  headline     String
+  summary      String
+  about        String[]            // paragraphs
+  email        String
+  phone        String
+  location     String
+  linkedin     String?
+  github       String?
+  website      String?
+  liveProject  String?             // e.g. https://devjops.com
+  availability String?
+  updatedAt    DateTime @updatedAt
+
+  @@map("profile")
+}
+
+model Experience {
+  id         Int      @id @default(autoincrement())
+  company    String
+  role       String
+  location   String?
+  startDate  DateTime
+  endDate    DateTime?
+  isCurrent  Boolean  @default(false)
+  bullets    String[]
+  tags       String[]
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("experiences")
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  bullets     String[]
+  tags        String[]
+  status      String   @default("Completed")   // Completed | Ongoing | Live
+  liveUrl     String?
+  repoUrl     String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model SkillGroup {
+  id        Int      @id @default(autoincrement())
+  category  String
+  icon      String?
+  items     String[]
+  sortOrder Int      @default(0)
+
+  @@map("skill_groups")
+}
+
+model Education {
+  id             Int     @id @default(autoincrement())
+  degree         String
+  institution    String?
+  graduationYear Int
+  sortOrder      Int     @default(0)
+
+  @@map("education")
+}
+
+model Certification {
+  id        Int     @id @default(autoincrement())
+  name      String
+  status    String  @default("In Progress")   // In Progress | Completed
+  issuer    String?
+  sortOrder Int     @default(0)
+
+  @@map("certifications")
+}
+
+// ───────────── FILE STORAGE (resume + any other document) ─────────────
+// Files live inside Postgres (BYTEA) so one DB backup contains everything.
+
+enum FileKind {
+  RESUME
+  CERTIFICATE
+  DOCUMENT
+  IMAGE
+}
+
+model StoredFile {
+  id        Int       @id @default(autoincrement())
+  kind      FileKind  @default(DOCUMENT)
+  filename  String
+  mimeType  String
+  sizeBytes Int
+  sha256    String
+  version   Int       @default(1)
+  isActive  Boolean   @default(false)   // the active RESUME is what visitors download
+  data      Bytes
+  createdAt DateTime  @default(now())
+
+  downloads Download[]
+
+  @@index([kind, isActive])
+  @@map("files")
+}
+
+// ───────────── INBOX + ANALYTICS ─────────────
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Visitor {
+  id          Int         @id @default(autoincrement())
+  visitorUuid String      @unique
+  ipAddress   String?
+  browser     String?
+  device      String?
+  os          String?
+  country     String?
+  city        String?
+  createdAt   DateTime    @default(now())
+  pageVisits  PageVisit[]
+  downloads   Download[]
+
+  @@map("visitors")
+}
+
+model PageVisit {
+  id         Int      @id @default(autoincrement())
+  visitorId  Int
+  pageName   String
+  timeSpent  Int?
+  clickCount Int?     @default(0)
+  referrer   String?
+  visitedAt  DateTime @default(now())
+
+  visitor Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([pageName])
+  @@map("page_visits")
+}
+
+model Download {
+  id           Int         @id @default(autoincrement())
+  visitorId    Int?
+  fileId       Int?
+  downloadType String
+  createdAt    DateTime    @default(now())
+
+  visitor Visitor?    @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  file    StoredFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@map("downloads")
+}

@@ -1,0 +1,17 @@
+# Render Blueprint — backend API (Cloudflare can't run Express+Prisma; Cloudflare fronts it via DNS)
+services:
+  - type: web
+    name: rohith-portfolio-api
+    runtime: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false

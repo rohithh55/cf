@@ -1,0 +1,12 @@
+{
+  "name": "rohith-portfolio",
+  "private": true,
+  "scripts": {
+    "deploy:frontend": "wrangler pages deploy frontend --project-name rohith-portfolio",
+    "preview:frontend": "wrangler pages dev frontend",
+    "db:setup": "cd database && npm install && npm run setup",
+    "backend:dev": "cd backend && npm install && npm run dev",
+    "backend:start": "cd backend && npm start"
+  },
+  "devDependencies": { "wrangler": "^3.80.0" }
+}
